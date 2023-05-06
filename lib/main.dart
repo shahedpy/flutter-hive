@@ -60,7 +60,24 @@ class _MyHomePageState extends State<MyHomePage> {
     _refreshItems();
   }
 
+  Future<void> _updateItem(int itemKey, Map<String, dynamic> item) async {
+    await _shoppingBox.put(itemKey, item);
+    _refreshItems();
+  }
+
+  Future<void> _deleteItem(int itemKey) async {
+    await _shoppingBox.delete(itemKey);
+    _refreshItems();
+  }
+
   void _showForm(BuildContext context, int? itemKey) async {
+    if (itemKey != null) {
+      final existingItem =
+          _items.firstWhere((element) => element["key"] == itemKey);
+      _nameController.text = existingItem["name"];
+      _quantityController.text = existingItem["quantity"];
+    }
+
     showModalBottomSheet(
         context: context,
         elevation: 5,
@@ -92,22 +109,37 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   ElevatedButton(
                       onPressed: () async {
-                        _createItem({
-                          "name": _nameController.text,
-                          "quantity": _quantityController.text,
-                        });
+                        if (itemKey == null) {
+                          _createItem({
+                            "name": _nameController.text,
+                            "quantity": _quantityController.text
+                          });
+                        }
+
+                        if (itemKey != null) {
+                          _updateItem(itemKey, {
+                            "name": _nameController.text,
+                            "quantity": _quantityController.text
+                          });
+                        }
 
                         _nameController.text = '';
                         _quantityController.text = '';
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Create New')),
+                      child: Text(itemKey == null ? 'Create New' : 'Update')),
                   const SizedBox(
                     height: 15,
                   ),
                 ],
               ),
             ));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshItems();
   }
 
   @override
@@ -127,6 +159,19 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ListTile(
                 title: Text(currentItem['name']),
                 subtitle: Text(currentItem['quantity']),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                        onPressed: () => _showForm(context, currentItem['key']),
+                        icon: const Icon(Icons.edit)),
+                    IconButton(
+                        onPressed: () {
+                          _deleteItem(currentItem["key"]);
+                        },
+                        icon: const Icon(Icons.delete)),
+                  ],
+                ),
               ),
             );
           }),
